@@ -1,0 +1,4 @@
+*.class
+data.txt
+*.log
+.DS_Store
