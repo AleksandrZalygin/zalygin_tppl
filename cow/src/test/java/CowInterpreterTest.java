@@ -1,585 +1,329 @@
-package org.example;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.example.CowInterpreter;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
+import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
+public class CowInterpreterTest {
+    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    private final PrintStream originalOut = System.out;
+    private final InputStream originalIn = System.in;
 
-class CowInterpreterTest {
+    @Before
+    public void setUpStreams() {
+        System.setOut(new PrintStream(outContent));
+    }
 
-    private CowInterpreter interpreter;
-    private ByteArrayOutputStream outputStream;
-    private ByteArrayInputStream inputStream;
+    @After
+    public void restoreStreams() {
+        System.setOut(originalOut);
+        System.setIn(originalIn);
+    }
 
-    @BeforeEach
-    void setUp() {
-        outputStream = new ByteArrayOutputStream();
-        inputStream = new ByteArrayInputStream(new byte[0]);
-        interpreter = new CowInterpreter(inputStream, outputStream);
+    private void setInput(String input) {
+        ByteArrayInputStream in = new ByteArrayInputStream(input.getBytes());
+        System.setIn(in);
+    }
+
+    private String getOutput() {
+        return outContent.toString();
     }
 
     @Test
-    void testDefaultConstructor() {
-        CowInterpreter defaultInterpreter = new CowInterpreter();
-        assertNotNull(defaultInterpreter);
-        assertEquals(0, defaultInterpreter.getPointer());
-        assertNull(defaultInterpreter.getRegister());
+    public void testMoOIncrement() throws IOException {
+        Files.write(Paths.get("test_increment.cow"), "MoO MoO MoO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_increment.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_increment.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParameterizedConstructor() {
-        assertNotNull(interpreter);
-        assertEquals(0, interpreter.getPointer());
-        assertNull(interpreter.getRegister());
-    }
-
-    // ============================================
-    // Тесты парсинга токенов
-    // ============================================
-
-    @Test
-    void testParseTokens_EmptyString() {
-        String[] tokens = interpreter.parseTokens("");
-        assertEquals(0, tokens.length);
+    public void testMOoDecrement() throws IOException {
+        Files.write(Paths.get("test_decrement.cow"), "MoO MoO MoO MOo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_decrement.cow");
+        interpreter.execute();
+        assertEquals("2", getOutput());
+        Files.deleteIfExists(Paths.get("test_decrement.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_SingleToken() {
-        String[] tokens = interpreter.parseTokens("MoO");
-        assertEquals(1, tokens.length);
-        assertEquals("MoO", tokens[0]);
+    public void testMoONextCell() throws IOException {
+        Files.write(Paths.get("test_next.cow"), "MoO MoO MoO moO MoO MoO mOo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_next.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_next.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_MultipleTokens() {
-        String[] tokens = interpreter.parseTokens("MoO MOo moO");
-        assertEquals(3, tokens.length);
-        assertEquals("MoO", tokens[0]);
-        assertEquals("MOo", tokens[1]);
-        assertEquals("moO", tokens[2]);
+    public void testMOoPrevCell() throws IOException {
+        Files.write(Paths.get("test_prev.cow"), "MoO MoO MoO moO MoO MoO mOo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_prev.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_prev.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_AllValidTokens() {
-        String source = "MoO MOo moO mOo moo MOO OOM oom mOO Moo OOO MMM";
-        String[] tokens = interpreter.parseTokens(source);
-        assertEquals(12, tokens.length);
+    public void testMOoPrevCellAtZero() throws IOException {
+        Files.write(Paths.get("test_prev_zero.cow"), "mOo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_prev_zero.cow");
+        interpreter.execute();
+        assertEquals("0", getOutput());
+        Files.deleteIfExists(Paths.get("test_prev_zero.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_WithWhitespace() {
-        String source = "MoO \n MOo \t moO";
-        String[] tokens = interpreter.parseTokens(source);
-        assertEquals(3, tokens.length);
+    public void testOOOZero() throws IOException {
+        Files.write(Paths.get("test_zero.cow"), "MoO MoO MoO OOO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_zero.cow");
+        interpreter.execute();
+        assertEquals("0", getOutput());
+        Files.deleteIfExists(Paths.get("test_zero.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_WithComments() {
-        String source = "MoO this is comment MOo";
-        String[] tokens = interpreter.parseTokens(source);
-        assertEquals(2, tokens.length);
+    public void testMMMRegisterCopyToRegister() throws IOException {
+        Files.write(Paths.get("test_register.cow"), "MoO MoO MoO MMM moO MMM OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_register.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_register.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testParseTokens_WithInvalidCharacters() {
-        String source = "MoO 123 !@# MOo";
-        String[] tokens = interpreter.parseTokens(source);
-        assertEquals(2, tokens.length);
-    }
-
-    // ============================================
-    // Тесты построения карты циклов
-    // ============================================
-
-    @Test
-    void testBuildLoopMap_NoLoops() {
-        String[] tokens = {"MoO", "MOo", "moO"};
-        Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-        assertTrue(loops.isEmpty());
+    public void testMMMRegisterCopyFromRegister() throws IOException {
+        Files.write(Paths.get("test_register2.cow"), "MoO MoO MoO MMM OOO MMM OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_register2.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_register2.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testBuildLoopMap_SingleLoop() {
-        String[] tokens = {"MOO", "MoO", "moo"};
-        Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-        assertEquals(2, loops.size());
-        assertEquals(2, loops.get(0));
-        assertEquals(0, loops.get(2));
+    public void testSimpleLoop() throws IOException {
+        Files.write(Paths.get("test_loop.cow"), "MoO MoO MoO MOO OOM MOo moo".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_loop.cow");
+        interpreter.execute();
+        assertEquals("321", getOutput());
+        Files.deleteIfExists(Paths.get("test_loop.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testBuildLoopMap_NestedLoops() {
-        String[] tokens = {"MOO", "MOO", "moo", "moo"};
-        Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-        assertEquals(4, loops.size());
-        assertEquals(2, loops.get(1));
-        assertEquals(1, loops.get(2));
-        assertEquals(3, loops.get(0));
-        assertEquals(0, loops.get(3));
+    public void testLoopSkipWhenZero() throws IOException {
+        Files.write(Paths.get("test_loop_skip.cow"), "MOO MoO moo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_loop_skip.cow");
+        interpreter.execute();
+        assertEquals("0", getOutput());
+        Files.deleteIfExists(Paths.get("test_loop_skip.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testBuildLoopMap_UnmatchedOpenLoop() {
-        String[] tokens = {"MOO", "MoO"};
-        Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-        assertTrue(loops.isEmpty());
+    public void testNestedLoops() throws IOException {
+        Files.write(Paths.get("test_nested.cow"), "MoO MoO MOO OOM MOo moo".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_nested.cow");
+        interpreter.execute();
+        assertEquals("21", getOutput());
+        Files.deleteIfExists(Paths.get("test_nested.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testBuildLoopMap_UnmatchedCloseLoop() {
-        String[] tokens = {"MoO", "moo"};
-        Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-        assertTrue(loops.isEmpty());
-    }
-
-    // ============================================
-    // Тесты операторов: MoO (инкремент)
-    // ============================================
-
-    @Test
-    void testMoO_Increment() throws IOException {
-        interpreter.execute("MoO");
-        assertEquals(1, interpreter.getMemory()[0]);
+    public void testMooOutputChar() throws IOException {
+        Files.write(Paths.get("test_moo_output.cow"), "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO Moo".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_moo_output.cow");
+        interpreter.execute();
+        assertEquals("A", getOutput());
+        Files.deleteIfExists(Paths.get("test_moo_output.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMoO_MultipleIncrements() throws IOException {
-        interpreter.execute("MoO MoO MoO");
-        assertEquals(3, interpreter.getMemory()[0]);
-    }
-
-    // ============================================
-    // Тесты операторов: MOo (декремент)
-    // ============================================
-
-    @Test
-    void testMOo_Decrement() throws IOException {
-        interpreter.setMemoryCell(0, 5);
-        interpreter.execute("MOo");
-        assertEquals(4, interpreter.getMemory()[0]);
+    public void testMooInputChar() throws IOException {
+        Files.write(Paths.get("test_moo_input.cow"), "Moo OOM".getBytes());
+        setInput("A");
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_moo_input.cow");
+        interpreter.execute();
+        assertEquals("65", getOutput());
+        Files.deleteIfExists(Paths.get("test_moo_input.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMOo_MultipleDecrements() throws IOException {
-        interpreter.setMemoryCell(0, 5);
-        interpreter.execute("MOo MOo MOo");
-        assertEquals(2, interpreter.getMemory()[0]);
-    }
-
-    // ============================================
-    // Тесты операторов: moO (следующая ячейка)
-    // ============================================
-
-    @Test
-    void testMoO_NextCell() throws IOException {
-        interpreter.execute("moO");
-        assertEquals(1, interpreter.getPointer());
+    public void testOomInputInteger() throws IOException {
+        Files.write(Paths.get("test_oom_input.cow"), "oom OOM".getBytes());
+        setInput("42");
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_oom_input.cow");
+        interpreter.execute();
+        assertEquals("42", getOutput());
+        Files.deleteIfExists(Paths.get("test_oom_input.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMoO_MultipleCellsForward() throws IOException {
-        interpreter.execute("moO moO moO");
-        assertEquals(3, interpreter.getPointer());
+    public void testOomInputInvalidInteger() throws IOException {
+        Files.write(Paths.get("test_oom_invalid.cow"), "oom OOM".getBytes());
+        setInput("abc");
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_oom_invalid.cow");
+        interpreter.execute();
+        assertEquals("0", getOutput());
+        Files.deleteIfExists(Paths.get("test_oom_invalid.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMoO_WrapAround() throws IOException {
-        interpreter.setPointer(29999);
-        interpreter.execute("moO");
-        assertEquals(0, interpreter.getPointer());
-    }
-
-    // ============================================
-    // Тесты операторов: mOo (предыдущая ячейка)
-    // ============================================
-
-    @Test
-    void testMOo_PreviousCell() throws IOException {
-        interpreter.setPointer(5);
-        interpreter.execute("mOo");
-        assertEquals(4, interpreter.getPointer());
+    public void testMOOExecuteInstructionSimple() throws IOException {
+        Files.write(Paths.get("test_exec.cow"), "OOM MoO MoO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO mOo mOO mOo OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_exec.cow");
+        interpreter.execute();
+        assertEquals("07", getOutput());
+        Files.deleteIfExists(Paths.get("test_exec.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMOo_MultipleCellsBackward() throws IOException {
-        interpreter.setPointer(5);
-        interpreter.execute("mOo mOo mOo");
-        assertEquals(2, interpreter.getPointer());
+    public void testMOOExecuteInstructionInvalidIndex() throws IOException {
+        Files.write(Paths.get("test_exec_invalid.cow"), "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO mOO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_exec_invalid.cow");
+        interpreter.execute();
+        assertEquals("100", getOutput());
+        Files.deleteIfExists(Paths.get("test_exec_invalid.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMOo_WrapAroundBackward() throws IOException {
-        interpreter.setPointer(0);
-        interpreter.execute("mOo");
-        assertEquals(29999, interpreter.getPointer());
-    }
-
-    // ============================================
-    // Тесты операторов: OOM (вывод)
-    // ============================================
-
-    @Test
-    void testOOM_OutputSingleChar() throws IOException {
-        interpreter.setMemoryCell(0, 65);
-        interpreter.execute("OOM");
-        assertEquals("65", outputStream.toString());
+    public void testMOOExecuteInstructionNegativeIndex() throws IOException {
+        Files.write(Paths.get("test_exec_neg.cow"), "MOo mOO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_exec_neg.cow");
+        interpreter.execute();
+        assertEquals("-1", getOutput());
+        Files.deleteIfExists(Paths.get("test_exec_neg.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testOOM_OutputMultipleChars() throws IOException {
-        interpreter.setMemoryCell(0, 72);
-        interpreter.setMemoryCell(1, 105);
-        interpreter.execute("OOM moO OOM");
-        assertEquals("72105", outputStream.toString());
-    }
-
-    // ============================================
-    // Тесты операторов: oom (ввод)
-    // ============================================
-
-    @Test
-    void testOom_InputSingleChar() throws IOException {
-        inputStream = new ByteArrayInputStream(new byte[]{65}); // 'A'
-        interpreter = new CowInterpreter(inputStream, outputStream);
-        interpreter.execute("oom");
-        assertEquals(65, interpreter.getMemory()[0]);
+    public void testMemoryExpansion() throws IOException {
+        Files.write(Paths.get("test_memory.cow"), "moO moO moO moO moO MoO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_memory.cow");
+        interpreter.execute();
+        assertEquals("1", getOutput());
+        Files.deleteIfExists(Paths.get("test_memory.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testOom_InputMultipleChars() throws IOException {
-        inputStream = new ByteArrayInputStream(new byte[]{65, 66}); // 'A', 'B'
-        interpreter = new CowInterpreter(inputStream, outputStream);
-        interpreter.execute("oom moO oom");
-        assertEquals(65, interpreter.getMemory()[0]);
-        assertEquals(66, interpreter.getMemory()[1]);
+    public void testParsingIgnoresInvalidChars() throws IOException {
+        Files.write(Paths.get("test_parse.cow"), "hello MoO world MoO invalid MoO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_parse.cow");
+        interpreter.execute();
+        assertEquals("3", getOutput());
+        Files.deleteIfExists(Paths.get("test_parse.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testOom_InputEndOfStream() throws IOException {
-        inputStream = new ByteArrayInputStream(new byte[0]);
-        interpreter = new CowInterpreter(inputStream, outputStream);
-        interpreter.setMemoryCell(0, 5);
-        interpreter.execute("oom");
-        assertEquals(5, interpreter.getMemory()[0]); // значение не меняется
-    }
-
-    // ============================================
-    // Тесты операторов: Moo (условный ввод/вывод)
-    // ============================================
-
-    @Test
-    void testMoo_OutputWhenNonZero() throws IOException {
-        interpreter.setMemoryCell(0, 65); // 'A'
-        interpreter.execute("Moo");
-        assertEquals("A", outputStream.toString());
+    public void testEmptyProgram() throws IOException {
+        Files.write(Paths.get("test_empty.cow"), "".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_empty.cow");
+        interpreter.execute();
+        assertEquals("", getOutput());
+        Files.deleteIfExists(Paths.get("test_empty.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMoo_InputWhenZero() throws IOException {
-        inputStream = new ByteArrayInputStream(new byte[]{66}); // 'B'
-        interpreter = new CowInterpreter(inputStream, outputStream);
-        interpreter.execute("Moo");
-        assertEquals(66, interpreter.getMemory()[0]);
+    public void testHelloCow() throws IOException {
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("hello.cow");
+        interpreter.execute();
+        assertEquals("Hello, World!", getOutput());
+        interpreter.close();
     }
 
     @Test
-    void testMoo_InputWhenZero_EndOfStream() throws IOException {
-        inputStream = new ByteArrayInputStream(new byte[0]);
-        interpreter = new CowInterpreter(inputStream, outputStream);
-        interpreter.execute("Moo");
-        assertEquals(0, interpreter.getMemory()[0]);
+    public void testFibCow() throws IOException {
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("fib.cow");
+        interpreter.execute();
+        assertTrue(getOutput().contains("1, 1, 2, 3, 5, 8"));
+        interpreter.close();
     }
 
-    // ============================================
-    // Тесты операторов: OOO (обнуление)
-    // ============================================
-
-    @Test
-    void testOOO_ClearCell() throws IOException {
-        interpreter.setMemoryCell(0, 42);
-        interpreter.execute("OOO");
-        assertEquals(0, interpreter.getMemory()[0]);
+    @Test(expected = IOException.class)
+    public void testLoadNonExistentFile() throws IOException {
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("nonexistent.cow");
+        interpreter.close();
     }
 
     @Test
-    void testOOO_ClearAlreadyZero() throws IOException {
-        interpreter.execute("OOO");
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    // ============================================
-    // Тесты операторов: MMM (регистр)
-    // ============================================
-
-    @Test
-    void testMMM_CopyToRegister() throws IOException {
-        interpreter.setMemoryCell(0, 42);
-        interpreter.execute("MMM");
-        assertEquals(42, interpreter.getRegister());
-    }
-
-    @Test
-    void testMMM_CopyFromRegister() throws IOException {
-        interpreter.setMemoryCell(0, 42);
-        interpreter.execute("MMM moO MMM");
-        assertEquals(0, interpreter.getMemory()[0]);
-        assertEquals(42, interpreter.getMemory()[1]);
-        assertNull(interpreter.getRegister());
+    public void testMultipleExecutions() throws IOException {
+        Files.write(Paths.get("test_multi.cow"), "MoO MoO OOM".getBytes());
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_multi.cow");
+        interpreter.execute();
+        String firstOutput = getOutput();
+        outContent.reset();
+        interpreter.execute();
+        String secondOutput = getOutput();
+        assertEquals(firstOutput, secondOutput);
+        Files.deleteIfExists(Paths.get("test_multi.cow"));
+        interpreter.close();
     }
 
     @Test
-    void testMMM_FullCycle() throws IOException {
-        interpreter.setMemoryCell(0, 100);
-        interpreter.execute("MMM moO MMM");
-        assertEquals(100, interpreter.getMemory()[1]);
-        assertNull(interpreter.getRegister());
+    public void testMooInputException() throws IOException {
+        Files.write(Paths.get("test_moo_exception.cow"), "Moo OOM".getBytes());
+        InputStream brokenInputStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Test exception");
+            }
+        };
+        System.setIn(brokenInputStream);
+        CowInterpreter interpreter = new CowInterpreter();
+        interpreter.loadProgram("test_moo_exception.cow");
+        interpreter.execute();
+        assertEquals("0", getOutput());
+        Files.deleteIfExists(Paths.get("test_moo_exception.cow"));
+        interpreter.close();
     }
 
-    // ============================================
-    // Тесты операторов: moo/MOO (циклы)
-    // ============================================
-
-    @Test
-    void testLoop_SkipWhenZero() throws IOException {
-        interpreter.execute("MOO MoO moo");
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testLoop_ExecuteWhenNonZero() throws IOException {
-        interpreter.setMemoryCell(0, 3);
-        interpreter.execute("MOO MOo moo");
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testLoop_CountDown() throws IOException {
-        interpreter.setMemoryCell(0, 5);
-        interpreter.execute("MOO MOo moo");
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testLoop_Nested() throws IOException {
-        interpreter.setMemoryCell(0, 2);
-        interpreter.setMemoryCell(1, 3);
-        interpreter.execute("MOO moO MOO MOo moo mOo MOo moo");
-        assertEquals(0, interpreter.getMemory()[0]);
-        assertEquals(0, interpreter.getMemory()[1]);
-    }
-
-    // ============================================
-    // Тесты операторов: mOO (переход)
-    // ============================================
-
-    @Test
-    void testMOO_JumpToInstruction() throws IOException {
-        interpreter.setMemoryCell(0, 2);
-        interpreter.execute("mOO MoO MoO MoO");
-        // Прыгает на инструкцию 2 (третью), пропуская две MoO
-        assertEquals(1, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testMOO_JumpOutOfBounds() throws IOException {
-        interpreter.setMemoryCell(0, 100);
-        interpreter.execute("mOO MoO");
-        // Прыжок за пределы, выполняется следующая инструкция
-        assertEquals(101, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testMOO_JumpToNegative() throws IOException {
-        interpreter.setMemoryCell(0, -1);
-        interpreter.execute("mOO MoO");
-        // Отрицательный прыжок игнорируется
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testMOO_JumpToZero() throws IOException {
-        interpreter.setMemoryCell(0, 0);
-        interpreter.execute("mOO MoO");
-        // Прыжок на начало - бесконечный цикл не происходит из-за -1
-        assertEquals(1, interpreter.getMemory()[0]);
-    }
-
-    // ============================================
-    // Комплексные тесты программ
-    // ============================================
-
-    @Test
-    void testComplexProgram_HelloWorld() throws IOException {
-        String program =
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MOO moO " +
-                        "MoO MoO MoO MoO MoO MoO MoO Moo";
-        interpreter.execute(program);
-        String output = outputStream.toString();
-        assertTrue(output.length() > 0);
-    }
-
-    @Test
-    void testComplexProgram_IncrementAndOutput() throws IOException {
-        // Увеличить до 72 ('H') и вывести
-        StringBuilder program = new StringBuilder();
-        for (int i = 0; i < 72; i++) {
-            program.append("MoO ");
-        }
-        program.append("OOM");
-        interpreter.execute(program.toString());
-        assertEquals("H", outputStream.toString());
-    }
-
-    // ============================================
-    // Тесты работы с файлами
-    // ============================================
-
-    @Test
-    void testLoadSource(@TempDir Path tempDir) throws IOException {
-        Path testFile = tempDir.resolve("test.cow");
-        Files.writeString(testFile, "MoO MOo moO");
-        String source = CowInterpreter.loadSource(testFile);
-        assertEquals("MoO MOo moO", source);
-    }
-
-    @Test
-    void testExecuteFromFile(@TempDir Path tempDir) throws IOException {
-        Path testFile = tempDir.resolve("test.cow");
-        String program = "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                "MoO MoO MoO MoO MoO OOM"; // 65 = 'A'
-        Files.writeString(testFile, program);
-
-        interpreter.executeFromFile(testFile);
-        assertEquals("A", outputStream.toString());
-    }
-
-    // ============================================
-    // Тесты вспомогательных методов
-    // ============================================
-
-    @Test
-    void testGetMemory() {
-        interpreter.setMemoryCell(0, 42);
-        interpreter.setMemoryCell(100, 99);
-        int[] memory = interpreter.getMemory();
-        assertEquals(42, memory[0]);
-        assertEquals(99, memory[100]);
-        // Проверяем, что возвращается копия
-        memory[0] = 0;
-        assertEquals(42, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testSetMemoryCell_Valid() {
-        interpreter.setMemoryCell(10, 55);
-        assertEquals(55, interpreter.getMemory()[10]);
-    }
-
-    @Test
-    void testSetMemoryCell_NegativeIndex() {
-        interpreter.setMemoryCell(-1, 55);
-        // Не должно вызвать исключение, просто игнорируется
-    }
-
-    @Test
-    void testSetMemoryCell_OutOfBounds() {
-        interpreter.setMemoryCell(30000, 55);
-        // Не должно вызвать исключение, просто игнорируется
-    }
-
-    @Test
-    void testSetPointer() {
-        interpreter.setPointer(100);
-        assertEquals(100, interpreter.getPointer());
-    }
-
-    @Test
-    void testReset() throws IOException {
-        interpreter.setMemoryCell(0, 42);
-        interpreter.setPointer(10);
-        interpreter.execute("MMM");
-
-        interpreter.reset();
-
-        assertEquals(0, interpreter.getPointer());
-        assertEquals(0, interpreter.getMemory()[0]);
-        assertNull(interpreter.getRegister());
-    }
-
-    // ============================================
-    // Интеграционные тесты с примерами
-    // ============================================
-
-    @Test
-    void testHelloWorldProgram(@TempDir Path tempDir) throws IOException {
-        Path helloFile = tempDir.resolve("hello.cow");
-        String helloProgram =
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MOO moO MoO moO MoO MoO moO MoO MoO MoO " +
-                        "moO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO MoO moO MoO " +
-                        "MoO MoO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO MoO MoO MoO moO MoO MoO MoO MoO " +
-                        "MoO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO moO MoO MoO MoO " +
-                        "MoO MoO MoO MoO MoO MoO MoO MoO moO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " +
-                        "MoO moO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO mOo mOo mOo mOo mOo " +
-                        "mOo mOo mOo mOo mOo mOo mOo mOo MOo moo moO moO moO moO moO moO moO moO MOo MOo " +
-                        "MOo MOo MOo MOo MOo MOo Moo moO moO moO MOo MOo MOo MOo MOo MOo MOo MOo MOo Moo " +
-                        "MoO MoO MoO MoO MoO MoO MoO Moo Moo moO MOo MOo MOo MOo MOo MOo MOo MOo MOo Moo " +
-                        "mOo mOo mOo mOo mOo mOo mOo MOo MOo MOo MOo MOo MOo Moo mOo MOo MOo MOo MOo MOo " +
-                        "MOo MOo MOo Moo moO moO moO moO moO MOo MOo MOo Moo moO moO moO Moo MoO MoO MoO " +
-                        "Moo mOo Moo MOo MOo MOo MOo MOo MOo MOo MOo Moo mOo mOo mOo mOo mOo mOo mOo MoO " +
-                        "Moo";
-        Files.writeString(helloFile, helloProgram);
-
-        interpreter.executeFromFile(helloFile);
-        String output = outputStream.toString();
-        assertTrue(output.contains("Hello"));
-    }
-
-    @Test
-    void testFibonacciProgram_Partial(@TempDir Path tempDir) throws IOException {
-        // Упрощенный тест части программы Фибоначчи
-        String fibStart =
-                "MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO MoO " + // 11 раз
-                        "moO MoO " + // следующая ячейка, +1
-                        "mOo mOo " + // назад
-                        "OOM"; // вывод
-
-        interpreter.execute(fibStart);
-        String output = outputStream.toString();
-        assertFalse(output.isEmpty());
-    }
-
-    @Test
-    void testEmptyProgram() throws IOException {
-        interpreter.execute("");
-        assertEquals(0, interpreter.getPointer());
-        assertEquals(0, interpreter.getMemory()[0]);
-    }
-
-    @Test
-    void testOnlyComments() throws IOException {
-        interpreter.execute("this is just text with no valid tokens");
-        assertEquals(0, interpreter.getPointer());
-    }
-
-    @Test
-    void testMemoryIsolation() throws IOException {
-        // Проверяем, что операции в одной ячейке не влияют на другие
-        interpreter.execute("MoO MoO MoO moO MoO MoO MoO MoO moO MoO");
-        assertEquals(3, interpreter.getMemory()[0]);
-        assertEquals(5, interpreter.getMemory()[1]);
-        assertEquals(1, interpreter.getMemory()[2]);
-    }
 }

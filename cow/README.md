@@ -1,222 +1,218 @@
-# COW Programming Language Interpreter
+# Интерпретатор языка COW
 
-Интерпретатор эзотерического языка программирования COW, написанный на Java.
-
-## Описание
-
-COW (Cattle Oriented Windows) - эзотерический язык программирования, использующий только комбинации букв M, o и O для создания команд. Этот проект представляет собой полнофункциональный интерпретатор COW с поддержкой всех 12 команд языка.
-
-## Возможности
-
-- ✅ Полная поддержка всех 12 инструкций COW
-- ✅ 30,000 ячеек памяти
-- ✅ Поддержка вложенных циклов
-- ✅ Регистр для временного хранения значений
-- ✅ Ввод/вывод данных
-- ✅ 67 юнит-тестов с 100% покрытием кода
+Интерпретатор эзотерического языка программирования COW, разработанный на Java.
 
 ## Требования
 
-- Java 17 или выше
-- Maven 3.6+ (опционально)
-
-## Установка и запуск
-
-### 1. Клонирование репозитория
-
-```bash
-git clone <URL_репозитория>
-cd cow
-```
-
-### 2. Компиляция проекта
-
-**Через Maven (рекомендуется):**
-```bash
-mvn clean compile
-```
-
-**Вручную:**
-```bash
-# Windows
-mkdir target\classes
-javac -d target\classes src\main\java\org\example\*.java
-
-# Linux/macOS
-mkdir -p target/classes
-javac -d target/classes src/main/java/org/example/*.java
-```
-
-### 3. Запуск программы
-
-```bash
-# Windows
-java -cp target\classes org.example.Main hello.cow
-
-# Linux/macOS
-java -cp target/classes org.example.Main hello.cow
-```
-
-## Примеры
-
-В проекте включены два примера программ на COW:
-
-- **hello.cow** - выводит "Hello, World!"
-- **fib.cow** - вычисляет числа Фибоначчи
-
-## Язык программирования COW
-
-### Инструкции
-
-| Команда | Описание |
-|---------|----------|
-| `MoO` | Увеличить значение текущей ячейки на 1 |
-| `MOo` | Уменьшить значение текущей ячейки на 1 |
-| `moO` | Перейти к следующей ячейке памяти |
-| `mOo` | Перейти к предыдущей ячейке памяти |
-| `MOO` | Начало цикла (если текущая ячейка = 0, перейти к соответствующей `moo`) |
-| `moo` | Конец цикла (вернуться к соответствующей `MOO`) |
-| `OOM` | Вывести значение текущей ячейки как число |
-| `oom` | Ввести значение в текущую ячейку |
-| `mOO` | Выполнить инструкцию с номером из текущей ячейки |
-| `Moo` | Если ячейка = 0: ввод, иначе: вывод символа (ASCII) |
-| `OOO` | Обнулить текущую ячейку |
-| `MMM` | Работа с регистром (копировать в/из регистра) |
-
-### Пример программы
-
-Программа, выводящая число 5:
-
-```cow
-MoO MoO MoO MoO MoO OOM
-```
-
-**Объяснение:**
-- `MoO` × 5 — увеличить значение ячейки до 5
-- `OOM` — вывести значение как число
-
-## Тестирование
-
-Проект включает 67 юнит-тестов с полным покрытием кода.
-
-### Запуск тестов
-
-```bash
-mvn test
-```
-
-### Покрытие
-
-Тесты покрывают:
-- Все конструкторы и методы
-- Все 12 инструкций COW
-- Парсинг токенов
-- Построение карты циклов
-- Граничные случаи (циклический буфер, вложенные циклы)
-- Файловые операции
-- Ввод/вывод данных
+- Java 11 или выше
 
 ## Структура проекта
 
 ```
 cow/
-├── src/
-│   ├── main/java/org/example/
-│   │   ├── Main.java              # Точка входа
-│   │   └── CowInterpreter.java    # Интерпретатор
-│   └── test/java/
-│       └── CowInterpreterTest.java # Юнит-тесты
-├── hello.cow                       # Пример: Hello World
-├── fib.cow                         # Пример: Fibonacci
-├── pom.xml                         # Maven конфигурация
-└── README.md                       # Документация
+├── pom.xml
+├── README.md
+├── cow-interpreter.jar
+├── hello.cow
+├── fib.cow
+├── lib/
+│   ├── junit-4.13.2.jar
+│   └── hamcrest-core-1.3.jar
+└── src/
+    ├── main/
+    │   └── java/
+    │       └── org/
+    │           └── example/
+    │               ├── Main.java
+    │               └── CowInterpreter.java
+    └── test/
+        └── java/
+            └── CowInterpreterTest.java
 ```
 
-## API
+## Компиляция
 
-### CowInterpreter
+### Способ 1: Используя javac (работает на Windows и Linux)
 
-**Конструкторы:**
-```java
-// Конструктор по умолчанию (System.in/System.out)
-CowInterpreter interpreter = new CowInterpreter();
-
-// С кастомными потоками ввода/вывода
-CowInterpreter interpreter = new CowInterpreter(inputStream, outputStream);
+```bash
+javac --release 11 -d target/classes -sourcepath src/main/java src/main/java/org/example/*.java
 ```
 
-**Основные методы:**
-```java
-// Выполнить код из строки
-interpreter.execute("MoO MoO MoO OOM");
+### Способ 2: Используя Maven (если установлен)
 
-// Выполнить код из файла
-interpreter.executeFromFile(Paths.get("program.cow"));
-
-// Загрузить исходный код из файла
-String source = CowInterpreter.loadSource(Paths.get("program.cow"));
-
-// Парсинг токенов
-String[] tokens = interpreter.parseTokens(source);
-
-// Построить карту циклов
-Map<Integer, Integer> loops = interpreter.buildLoopMap(tokens);
-```
-
-**Методы для тестирования:**
-```java
-// Получить состояние памяти
-int[] memory = interpreter.getMemory();
-
-// Получить позицию указателя
-int pointer = interpreter.getPointer();
-
-// Получить значение регистра
-Integer register = interpreter.getRegister();
-
-// Установить значение ячейки памяти
-interpreter.setMemoryCell(0, 42);
-
-// Установить позицию указателя
-interpreter.setPointer(10);
-
-// Сбросить состояние интерпретатора
-interpreter.reset();
-```
-
-## Решение проблем
-
-### "java: command not found"
-
-Установите JDK 17 или выше:
-- **Windows**: https://adoptium.net/
-- **Linux**: `sudo apt install openjdk-17-jdk`
-- **macOS**: `brew install openjdk@17`
-
-### "Error: Could not find or load main class"
-
-Убедитесь, что проект скомпилирован:
 ```bash
 mvn clean compile
 ```
 
-### "package org.example does not exist"
+## Создание JAR файла
 
-Проверьте структуру папок и перекомпилируйте:
 ```bash
-mvn clean compile
+javac --release 11 -d target/classes -sourcepath src/main/java src/main/java/org/example/*.java
+cd target/classes
+jar cfe ../../cow-interpreter.jar org.example.Main org/example/*.class
+cd ../..
 ```
 
-## Лицензия
+## Запуск
 
-Этот проект создан в образовательных целях.
+### Вариант 1: Используя JAR файл (рекомендуется)
 
-## Автор
+```bash
+java -jar cow-interpreter.jar <файл.cow>
+```
 
-Создано как учебный проект для изучения эзотерических языков программирования и практики разработки интерпретаторов.
+Примеры:
 
----
+```bash
+java -jar cow-interpreter.jar hello.cow
+java -jar cow-interpreter.jar fib.cow
+```
 
-**Версия:** 1.0
-**Дата:** 2025-11-24
-**Покрытие тестами:** 100%
+### Вариант 2: Используя скомпилированные классы
+
+```bash
+java -cp target/classes org.example.Main <файл.cow>
+```
+
+Примеры:
+
+```bash
+java -cp target/classes org.example.Main hello.cow
+java -cp target/classes org.example.Main fib.cow
+```
+
+## Примеры программ
+
+### hello.cow
+Выводит "Hello, World!"
+
+Запуск:
+```bash
+java -jar cow-interpreter.jar hello.cow
+```
+
+Ожидаемый вывод:
+```
+Hello, World!
+```
+
+### fib.cow
+Выводит первые числа Фибоначчи
+
+Запуск:
+```bash
+java -jar cow-interpreter.jar fib.cow
+```
+
+Ожидаемый вывод:
+```
+1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, ...
+```
+
+## Описание операторов COW
+
+| Оператор | Описание |
+|----------|----------|
+| MoO | Увеличить значение текущей ячейки на 1 |
+| MOo | Уменьшить значение текущей ячейки на 1 |
+| moO | Переместить указатель на следующую ячейку |
+| mOo | Переместить указатель на предыдущую ячейку |
+| MOO | Начало цикла (пропустить до moo, если ячейка = 0) |
+| moo | Конец цикла (вернуться к MOO) |
+| OOM | Вывести значение текущей ячейки как целое число |
+| oom | Ввести целое число в текущую ячейку |
+| mOO | Выполнить инструкцию с номером из текущей ячейки |
+| Moo | Если ячейка = 0, ввести символ; иначе вывести ASCII символ |
+| OOO | Обнулить значение в ячейке |
+| MMM | Копировать значение между ячейкой и регистром |
+
+## Тестирование
+
+Проект включает набор юнит-тестов для проверки всех функций интерпретатора.
+
+### Компиляция тестов
+
+**Способ 1: Используя javac (работает на Windows и Linux)**
+
+Сначала скачайте JUnit библиотеки (если они еще не скачаны):
+
+```bash
+mkdir -p lib
+curl -L -o lib/junit-4.13.2.jar https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar
+curl -L -o lib/hamcrest-core-1.3.jar https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+```
+
+Затем скомпилируйте основные классы и тесты:
+
+**На Windows (Command Prompt, PowerShell, Git Bash):**
+```bash
+javac --release 11 -d target/classes -sourcepath src/main/java src/main/java/org/example/*.java
+javac --release 11 -cp "lib/junit-4.13.2.jar;lib/hamcrest-core-1.3.jar;target/classes" -d target/test-classes src/test/java/CowInterpreterTest.java
+```
+
+**На Linux/Mac:**
+```bash
+javac --release 11 -d target/classes -sourcepath src/main/java src/main/java/org/example/*.java
+javac --release 11 -cp "lib/junit-4.13.2.jar:lib/hamcrest-core-1.3.jar:target/classes" -d target/test-classes src/test/java/CowInterpreterTest.java
+```
+
+**Способ 2: Используя Maven (если установлен)**
+
+```bash
+mvn clean test
+```
+
+### Запуск тестов
+
+**Способ 1: Используя javac**
+
+**На Windows (Command Prompt, PowerShell, Git Bash):**
+```bash
+java -cp "lib/junit-4.13.2.jar;lib/hamcrest-core-1.3.jar;target/classes;target/test-classes" org.junit.runner.JUnitCore CowInterpreterTest
+```
+
+**На Linux/Mac:**
+```bash
+java -cp "lib/junit-4.13.2.jar:lib/hamcrest-core-1.3.jar:target/classes:target/test-classes" org.junit.runner.JUnitCore CowInterpreterTest
+```
+
+**Способ 2: Используя Maven (если установлен)**
+
+```bash
+mvn test
+```
+
+### Покрытие тестами
+
+Тесты покрывают:
+- Все 12 операторов языка COW
+- Работу с памятью и указателем
+- Циклы (включая вложенные)
+- Граничные случаи (пустые файлы, невалидные команды)
+- Ввод/вывод данных
+- Работу с регистром
+- Выполнение инструкций по индексу (mOO)
+
+Всего: 26 тестов
+
+Ожидаемый результат при успешном выполнении:
+```
+JUnit version 4.13.2
+..........................
+Time: 0.1XX
+
+OK (26 tests)
+```
+
+## Устранение неполадок
+
+### Ошибка "command not found: java"
+
+Установите Java Development Kit (JDK) версии 11 или выше:
+
+- **Windows**: Скачайте с https://adoptium.net/ или https://www.oracle.com/java/technologies/downloads/
+- **Linux**: `sudo apt install openjdk-11-jdk` (Ubuntu/Debian) или `sudo yum install java-11-openjdk` (CentOS/RHEL)
+
+### Ошибка "Error reading file"
+
+Убедитесь, что файл .cow существует и находится в текущей директории, или укажите полный путь к файлу.

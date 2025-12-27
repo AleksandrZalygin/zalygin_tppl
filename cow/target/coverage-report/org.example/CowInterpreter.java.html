@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CowInterpreter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">org.example</a> &gt; <span class="el_source">CowInterpreter.java</span></div><h1>CowInterpreter.java</h1><pre class="source lang-java linenums">package org.example;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+
+public class CowInterpreter {
+    private List&lt;Integer&gt; memory;
+    private int pointer;
+    private Integer register;
+    private List&lt;String&gt; instructions;
+    private Scanner scanner;
+
+<span class="fc" id="L15">    public CowInterpreter() {</span>
+<span class="fc" id="L16">        this.memory = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L17">        this.memory.add(0);</span>
+<span class="fc" id="L18">        this.pointer = 0;</span>
+<span class="fc" id="L19">        this.register = null;</span>
+<span class="fc" id="L20">        this.instructions = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L21">        this.scanner = new Scanner(System.in);</span>
+<span class="fc" id="L22">    }</span>
+
+    public void loadProgram(String filename) throws IOException {
+<span class="fc" id="L25">        String content = new String(Files.readAllBytes(Paths.get(filename)));</span>
+<span class="fc" id="L26">        parseInstructions(content);</span>
+<span class="fc" id="L27">    }</span>
+
+    private void parseInstructions(String content) {
+<span class="fc" id="L30">        instructions.clear();</span>
+<span class="fc" id="L31">        int i = 0;</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        while (i &lt; content.length()) {</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">            if (i + 2 &lt; content.length()) {</span>
+<span class="fc" id="L34">                String candidate = content.substring(i, i + 3);</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">                if (isValidInstruction(candidate)) {</span>
+<span class="fc" id="L36">                    instructions.add(candidate);</span>
+<span class="fc" id="L37">                    i += 3;</span>
+<span class="fc" id="L38">                    continue;</span>
+                }
+            }
+<span class="fc" id="L41">            i++;</span>
+        }
+<span class="fc" id="L43">    }</span>
+
+    private boolean isValidInstruction(String s) {
+<span class="fc bfc" id="L46" title="All 6 branches covered.">        return s.equals(&quot;MoO&quot;) || s.equals(&quot;MOo&quot;) || s.equals(&quot;moO&quot;) ||</span>
+<span class="fc bfc" id="L47" title="All 6 branches covered.">               s.equals(&quot;mOo&quot;) || s.equals(&quot;moo&quot;) || s.equals(&quot;MOO&quot;) ||</span>
+<span class="fc bfc" id="L48" title="All 6 branches covered.">               s.equals(&quot;OOM&quot;) || s.equals(&quot;oom&quot;) || s.equals(&quot;mOO&quot;) ||</span>
+<span class="fc bfc" id="L49" title="All 6 branches covered.">               s.equals(&quot;Moo&quot;) || s.equals(&quot;OOO&quot;) || s.equals(&quot;MMM&quot;);</span>
+    }
+
+    public void execute() {
+<span class="fc" id="L53">        memory.clear();</span>
+<span class="fc" id="L54">        memory.add(0);</span>
+<span class="fc" id="L55">        pointer = 0;</span>
+<span class="fc" id="L56">        register = null;</span>
+
+<span class="fc" id="L58">        int pc = 0;</span>
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        while (pc &lt; instructions.size()) {</span>
+<span class="fc" id="L61">            String instr = instructions.get(pc);</span>
+
+<span class="pc bpc" id="L63" title="1 of 13 branches missed.">            switch (instr) {</span>
+                case &quot;MoO&quot;:
+<span class="fc" id="L65">                    ensureMemorySize();</span>
+<span class="fc" id="L66">                    memory.set(pointer, memory.get(pointer) + 1);</span>
+<span class="fc" id="L67">                    break;</span>
+
+                case &quot;MOo&quot;:
+<span class="fc" id="L70">                    ensureMemorySize();</span>
+<span class="fc" id="L71">                    memory.set(pointer, memory.get(pointer) - 1);</span>
+<span class="fc" id="L72">                    break;</span>
+
+                case &quot;moO&quot;:
+<span class="fc" id="L75">                    pointer++;</span>
+<span class="fc" id="L76">                    ensureMemorySize();</span>
+<span class="fc" id="L77">                    break;</span>
+
+                case &quot;mOo&quot;:
+<span class="fc bfc" id="L80" title="All 2 branches covered.">                    if (pointer &gt; 0) {</span>
+<span class="fc" id="L81">                        pointer--;</span>
+                    }
+                    break;
+
+                case &quot;MOO&quot;:
+<span class="fc" id="L86">                    ensureMemorySize();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">                    if (memory.get(pointer) == 0) {</span>
+<span class="fc" id="L88">                        int depth = 1;</span>
+<span class="fc" id="L89">                        int searchPc = pc + 1;</span>
+<span class="fc bfc" id="L90" title="All 4 branches covered.">                        while (searchPc &lt; instructions.size() &amp;&amp; depth &gt; 0) {</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                            if (instructions.get(searchPc).equals(&quot;MOO&quot;)) {</span>
+<span class="fc" id="L92">                                depth++;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                            } else if (instructions.get(searchPc).equals(&quot;moo&quot;)) {</span>
+<span class="fc" id="L94">                                depth--;</span>
+                            }
+<span class="fc" id="L96">                            searchPc++;</span>
+                        }
+<span class="fc" id="L98">                        pc = searchPc - 1;</span>
+<span class="fc" id="L99">                    }</span>
+                    break;
+
+                case &quot;moo&quot;:
+<span class="fc" id="L103">                    int depth = 1;</span>
+<span class="fc" id="L104">                    int searchPc = pc - 1;</span>
+<span class="pc bpc" id="L105" title="1 of 4 branches missed.">                    while (searchPc &gt;= 0 &amp;&amp; depth &gt; 0) {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">                        if (instructions.get(searchPc).equals(&quot;moo&quot;)) {</span>
+<span class="fc" id="L107">                            depth++;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                        } else if (instructions.get(searchPc).equals(&quot;MOO&quot;)) {</span>
+<span class="fc" id="L109">                            depth--;</span>
+                        }
+<span class="fc" id="L111">                        searchPc--;</span>
+                    }
+<span class="fc" id="L113">                    pc = searchPc;</span>
+<span class="fc" id="L114">                    break;</span>
+
+                case &quot;OOM&quot;:
+<span class="fc" id="L117">                    ensureMemorySize();</span>
+<span class="fc" id="L118">                    System.out.print(memory.get(pointer));</span>
+<span class="fc" id="L119">                    break;</span>
+
+                case &quot;oom&quot;:
+<span class="fc" id="L122">                    ensureMemorySize();</span>
+                    try {
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                        if (scanner.hasNextInt()) {</span>
+<span class="fc" id="L125">                            memory.set(pointer, scanner.nextInt());</span>
+                        } else {
+<span class="fc" id="L127">                            memory.set(pointer, 0);</span>
+                        }
+<span class="nc" id="L129">                    } catch (Exception e) {</span>
+<span class="nc" id="L130">                        memory.set(pointer, 0);</span>
+<span class="fc" id="L131">                    }</span>
+<span class="nc" id="L132">                    break;</span>
+
+                case &quot;mOO&quot;:
+<span class="fc" id="L135">                    ensureMemorySize();</span>
+<span class="fc" id="L136">                    int targetIndex = memory.get(pointer);</span>
+<span class="pc bpc" id="L137" title="1 of 4 branches missed.">                    if (targetIndex &gt;= 0 &amp;&amp; targetIndex &lt; instructions.size()) {</span>
+<span class="fc" id="L138">                        executeInstruction(instructions.get(targetIndex));</span>
+                    }
+                    break;
+
+                case &quot;Moo&quot;:
+<span class="fc" id="L143">                    ensureMemorySize();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">                    if (memory.get(pointer) == 0) {</span>
+                        try {
+<span class="fc" id="L146">                            int input = System.in.read();</span>
+<span class="fc" id="L147">                            memory.set(pointer, input);</span>
+<span class="fc" id="L148">                        } catch (IOException e) {</span>
+<span class="fc" id="L149">                            memory.set(pointer, 0);</span>
+<span class="fc" id="L150">                        }</span>
+                    } else {
+<span class="fc" id="L152">                        System.out.print((char) (int) memory.get(pointer));</span>
+                    }
+<span class="fc" id="L154">                    break;</span>
+
+                case &quot;OOO&quot;:
+<span class="fc" id="L157">                    ensureMemorySize();</span>
+<span class="fc" id="L158">                    memory.set(pointer, 0);</span>
+<span class="fc" id="L159">                    break;</span>
+
+                case &quot;MMM&quot;:
+<span class="fc" id="L162">                    ensureMemorySize();</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">                    if (register == null) {</span>
+<span class="fc" id="L164">                        register = memory.get(pointer);</span>
+                    } else {
+<span class="fc" id="L166">                        memory.set(pointer, register);</span>
+<span class="fc" id="L167">                        register = null;</span>
+                    }
+                    break;
+            }
+
+<span class="fc" id="L172">            pc++;</span>
+<span class="fc" id="L173">        }</span>
+<span class="fc" id="L174">    }</span>
+
+    private void executeInstruction(String instr) {
+<span class="pc bpc" id="L177" title="6 of 10 branches missed.">        switch (instr) {</span>
+            case &quot;MoO&quot;:
+<span class="fc" id="L179">                ensureMemorySize();</span>
+<span class="fc" id="L180">                memory.set(pointer, memory.get(pointer) + 1);</span>
+<span class="fc" id="L181">                break;</span>
+            case &quot;MOo&quot;:
+<span class="nc" id="L183">                ensureMemorySize();</span>
+<span class="nc" id="L184">                memory.set(pointer, memory.get(pointer) - 1);</span>
+<span class="nc" id="L185">                break;</span>
+            case &quot;moO&quot;:
+<span class="fc" id="L187">                pointer++;</span>
+<span class="fc" id="L188">                ensureMemorySize();</span>
+<span class="fc" id="L189">                break;</span>
+            case &quot;mOo&quot;:
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">                if (pointer &gt; 0) {</span>
+<span class="fc" id="L192">                    pointer--;</span>
+                }
+                break;
+            case &quot;OOM&quot;:
+<span class="nc" id="L196">                ensureMemorySize();</span>
+<span class="nc" id="L197">                System.out.print(memory.get(pointer));</span>
+<span class="nc" id="L198">                break;</span>
+            case &quot;oom&quot;:
+<span class="nc" id="L200">                ensureMemorySize();</span>
+                try {
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                    if (scanner.hasNextInt()) {</span>
+<span class="nc" id="L203">                        memory.set(pointer, scanner.nextInt());</span>
+                    } else {
+<span class="nc" id="L205">                        memory.set(pointer, 0);</span>
+                    }
+<span class="nc" id="L207">                } catch (Exception e) {</span>
+<span class="nc" id="L208">                    memory.set(pointer, 0);</span>
+<span class="nc" id="L209">                }</span>
+<span class="nc" id="L210">                break;</span>
+            case &quot;Moo&quot;:
+<span class="nc" id="L212">                ensureMemorySize();</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                if (memory.get(pointer) == 0) {</span>
+                    try {
+<span class="nc" id="L215">                        int input = System.in.read();</span>
+<span class="nc" id="L216">                        memory.set(pointer, input);</span>
+<span class="nc" id="L217">                    } catch (IOException e) {</span>
+<span class="nc" id="L218">                        memory.set(pointer, 0);</span>
+<span class="nc" id="L219">                    }</span>
+                } else {
+<span class="nc" id="L221">                    System.out.print((char) (int) memory.get(pointer));</span>
+                }
+<span class="nc" id="L223">                break;</span>
+            case &quot;OOO&quot;:
+<span class="nc" id="L225">                ensureMemorySize();</span>
+<span class="nc" id="L226">                memory.set(pointer, 0);</span>
+<span class="nc" id="L227">                break;</span>
+            case &quot;MMM&quot;:
+<span class="nc" id="L229">                ensureMemorySize();</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">                if (register == null) {</span>
+<span class="nc" id="L231">                    register = memory.get(pointer);</span>
+                } else {
+<span class="nc" id="L233">                    memory.set(pointer, register);</span>
+<span class="nc" id="L234">                    register = null;</span>
+                }
+                break;
+        }
+<span class="fc" id="L238">    }</span>
+
+    private void ensureMemorySize() {
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        while (pointer &gt;= memory.size()) {</span>
+<span class="fc" id="L242">            memory.add(0);</span>
+        }
+<span class="fc" id="L244">    }</span>
+
+    public void close() {
+<span class="fc" id="L247">        scanner.close();</span>
+<span class="fc" id="L248">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
